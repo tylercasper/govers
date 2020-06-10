@@ -191,6 +191,7 @@ type context struct {
 // walkDir walks all directories below path and
 // adds any packages to ctxt.editPkgs.
 func (ctxt *context) walkDir(path string) {
+	containsGoFiles := false
 	entries, err := ioutil.ReadDir(path)
 	if err != nil {
 		logf("cannot read directory %q: %v", path, err)
@@ -205,15 +206,18 @@ func (ctxt *context) walkDir(path string) {
 		} else {
 			if strings.HasSuffix(entry.Name(), ".go") {
 				ep.goFiles = append(ep.goFiles, filepath.Join(path, entry.Name()))
+				containsGoFiles = true
 			}
 		}
 	}
-	pkg, err := ctxt.buildCtxt.Import(".", path, build.FindOnly)
-	if err != nil {
-		// ignore directories that don't correspond to packages.
-		return
+	if containsGoFiles {
+		pkg, err := ctxt.buildCtxt.Import(".", path, build.FindOnly)
+		if err != nil {
+			// ignore directories that don't correspond to packages.
+			return
+		}
+		ctxt.editPkgs[pkg.ImportPath] = &ep
 	}
-	ctxt.editPkgs[pkg.ImportPath] = &ep
 }
 
 // checkPackage checks all go files in the given
